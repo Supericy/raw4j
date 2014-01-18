@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -70,7 +71,7 @@ public class Reddit {
         requestor = new RedditRequestor(userAgent);
         requestor.setSession(session);
     }
-        
+    
     /**
      * Once this method is called the cookie returned is set as the session and will be added to all future calls
      * 
@@ -365,4 +366,37 @@ public class Reddit {
             throw new RedditException("Username " + username + " does not exist.");
         }
     }
+    
+	public List<RedditComment> commentsFor(String subredditName) throws RedditException
+	{
+		return commentsFor(subredditName, new HashMap<String, String>());
+	}
+
+	public List<RedditComment> commentsFor(String subredditName, Map<String, String> extraQueryParams) throws RedditException, IllegalStateException
+	{
+		// http://www.reddit.com/r/all/comments.json?limit=100
+
+		final List<String> path = new ArrayList<String>();
+		final Map<String, String> queryParams = new HashMap<String, String>();
+
+		path.add(RedditApiResourceConstants.R);
+		path.add(subredditName);
+		path.add(RedditApiResourceConstants.COMMENTS + RedditApiResourceConstants.DOT_JSON);
+
+		queryParams.put("limit", "100");
+		if (extraQueryParams != null)
+		{
+			for (Entry<String, String> e : extraQueryParams.entrySet())
+				queryParams.put(e.getKey(), e.getValue());
+		}
+
+		final RedditRequestInput requestInput = new RedditRequestInput(path, queryParams);
+
+		final RedditRequestResponse response = requestor.executeGet(requestInput);
+
+        final RedditJsonParser parser = new RedditJsonParser(response.getBody());
+        final List<RedditComment> commentList = parser.parseCommentsOnly();
+
+		return commentList;
+	}
 }
